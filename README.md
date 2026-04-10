@@ -1,8 +1,8 @@
-# piggsydust
-
 <p align="center">
   <img src="splash.png" alt="PiggsyDust" width="400">
 </p>
+
+# PiggsyDust
 
 A Go library for controlling [SAL Pixie](https://www.saltosystems.com/) / Telink BLE mesh wall switches — fully offline, no cloud, no hub, no app dependency.
 
