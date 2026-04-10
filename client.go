@@ -151,14 +151,15 @@ func (c *Client) GroupTurnOff(ctx context.Context, group Address) error {
 }
 
 // QueryStatus broadcasts a status query and returns a channel that
-// delivers [DeviceStatus] values as they arrive. The channel closes
-// after the client's command timeout.
-func (c *Client) QueryStatus(ctx context.Context) (<-chan DeviceStatus, error) {
+// delivers [BroadcastDeviceStatus] values as they arrive. Each 0xdc
+// notification packs up to two devices, which are delivered individually
+// on the channel. The channel closes after the client's command timeout.
+func (c *Client) QueryStatus(ctx context.Context) (<-chan BroadcastDeviceStatus, error) {
 	if err := c.send(ctx, command.StatusQuery()); err != nil {
 		return nil, err
 	}
 
-	out := make(chan DeviceStatus, 32)
+	out := make(chan BroadcastDeviceStatus, 64)
 	go func() {
 		defer close(out)
 
@@ -168,17 +169,19 @@ func (c *Client) QueryStatus(ctx context.Context) (<-chan DeviceStatus, error) {
 			select {
 			case n := <-ch:
 				c.sess.unregisterWaiter(0xdc, 0)
-				ds, err := ParseDeviceStatus(n)
+				devices, err := ParseBroadcastStatus(n)
 				if err != nil {
-					c.cfg.logger.Warn("bad status notification", "err", err)
+					c.cfg.logger.Warn("bad broadcast status notification", "err", err)
 					continue
 				}
-				select {
-				case out <- ds:
-				case <-timeout:
-					return
-				case <-ctx.Done():
-					return
+				for _, ds := range devices {
+					select {
+					case out <- ds:
+					case <-timeout:
+						return
+					case <-ctx.Done():
+						return
+					}
 				}
 			case <-timeout:
 				c.sess.unregisterWaiter(0xdc, 0)

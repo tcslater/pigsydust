@@ -1,6 +1,9 @@
 package piggsydust
 
-import "testing"
+import (
+	"encoding/hex"
+	"testing"
+)
 
 func TestParseNotificationWire(t *testing.T) {
 	raw := make([]byte, 20)
@@ -82,6 +85,118 @@ func TestParseDeviceStatus(t *testing.T) {
 	}
 	if !ds.On {
 		t.Error("On: got false, want true")
+	}
+}
+
+func TestParseDeviceStatus_RejectsDC(t *testing.T) {
+	n := Notification{Opcode: 0xdc, Payload: make([]byte, 10)}
+	_, err := ParseDeviceStatus(n)
+	if err == nil {
+		t.Error("expected error for 0xdc (should use ParseBroadcastStatus)")
+	}
+}
+
+func TestParseBroadcastStatus_TwoDevices(t *testing.T) {
+	// Real capture: Laundry(94) OFF, Verandah(251) OFF
+	payload, _ := hex.DecodeString("5ec20080fb6b00800000")
+
+	n := Notification{Opcode: 0xdc, Vendor: 0x0211, Payload: payload}
+	devices, err := ParseBroadcastStatus(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(devices) != 2 {
+		t.Fatalf("devices: got %d, want 2", len(devices))
+	}
+
+	// Device A: Laundry, address 94 (0x5e), OFF
+	if devices[0].Address != Address(0x5e) {
+		t.Errorf("device A address: got %d, want 94", devices[0].Address)
+	}
+	if devices[0].Brightness != 0x00 {
+		t.Errorf("device A brightness: got 0x%02x, want 0x00 (OFF)", devices[0].Brightness)
+	}
+
+	// Device B: Verandah, address 251 (0xfb), OFF
+	if devices[1].Address != Address(0xfb) {
+		t.Errorf("device B address: got %d, want 251", devices[1].Address)
+	}
+	if devices[1].Brightness != 0x00 {
+		t.Errorf("device B brightness: got 0x%02x, want 0x00 (OFF)", devices[1].Brightness)
+	}
+}
+
+func TestParseBroadcastStatus_TwoDevicesMixed(t *testing.T) {
+	// Real capture: Kitchen(47) ON, Flood Light(48) OFF
+	payload, _ := hex.DecodeString("2f8a649030ed00b00000")
+
+	n := Notification{Opcode: 0xdc, Vendor: 0x0211, Payload: payload}
+	devices, err := ParseBroadcastStatus(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(devices) != 2 {
+		t.Fatalf("devices: got %d, want 2", len(devices))
+	}
+
+	if devices[0].Address != Address(0x2f) {
+		t.Errorf("device A address: got %d, want 47", devices[0].Address)
+	}
+	if devices[0].Brightness != 0x64 {
+		t.Errorf("device A brightness: got 0x%02x, want 0x64 (ON)", devices[0].Brightness)
+	}
+
+	if devices[1].Address != Address(0x30) {
+		t.Errorf("device B address: got %d, want 48", devices[1].Address)
+	}
+	if devices[1].Brightness != 0x00 {
+		t.Errorf("device B brightness: got 0x%02x, want 0x00 (OFF)", devices[1].Brightness)
+	}
+}
+
+func TestParseBroadcastStatus_SingleDevice(t *testing.T) {
+	// Real capture: Dining(144) ON - unsolicited toggle, second slot zeroed
+	payload, _ := hex.DecodeString("90f36480000000000000")
+
+	n := Notification{Opcode: 0xdc, Vendor: 0x0211, Payload: payload}
+	devices, err := ParseBroadcastStatus(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(devices) != 1 {
+		t.Fatalf("devices: got %d, want 1", len(devices))
+	}
+
+	if devices[0].Address != Address(0x90) {
+		t.Errorf("address: got %d, want 144", devices[0].Address)
+	}
+	if devices[0].Brightness != 0x64 {
+		t.Errorf("brightness: got 0x%02x, want 0x64 (ON)", devices[0].Brightness)
+	}
+}
+
+func TestParseBroadcastStatus_SingleDeviceOff(t *testing.T) {
+	// Real capture: Dining(144) OFF
+	payload, _ := hex.DecodeString("90fe0090000000000000")
+
+	n := Notification{Opcode: 0xdc, Vendor: 0x0211, Payload: payload}
+	devices, err := ParseBroadcastStatus(n)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(devices) != 1 {
+		t.Fatalf("devices: got %d, want 1", len(devices))
+	}
+
+	if devices[0].Address != Address(0x90) {
+		t.Errorf("address: got %d, want 144", devices[0].Address)
+	}
+	if devices[0].Brightness != 0x00 {
+		t.Errorf("brightness: got 0x%02x, want 0x00 (OFF)", devices[0].Brightness)
 	}
 }
 

@@ -21,8 +21,8 @@ type Notification struct {
 	Payload []byte
 }
 
-// DeviceStatus holds the decoded state of a mesh device, received
-// in response to status queries (0xc5) and polls (0xda).
+// DeviceStatus holds the decoded state of a mesh device from a
+// unicast 0xdb poll response. See [ParseDeviceStatus].
 type DeviceStatus struct {
 	Address       Address
 	MAC           MACAddress
@@ -31,6 +31,16 @@ type DeviceStatus struct {
 	DeviceType    DeviceType
 	RoutingMetric byte
 	On            bool
+}
+
+// BroadcastDeviceStatus holds the compact state of a mesh device from
+// a 0xdc broadcast notification. Each 0xdc notification packs up to
+// two device statuses. See [ParseBroadcastStatus].
+type BroadcastDeviceStatus struct {
+	Address       Address
+	RoutingMetric byte
+	Brightness    byte // 0x00=off, 0x64=on at 100%
+	Flags         byte
 }
 
 // GroupMembership holds a device's group list, received in response
@@ -67,10 +77,11 @@ func ParseNotification(srcAddr Address, plaintext []byte) (Notification, error) 
 	return n, nil
 }
 
-// ParseDeviceStatus extracts a [DeviceStatus] from a 0xdb or 0xdc notification.
+// ParseDeviceStatus extracts a [DeviceStatus] from a 0xdb unicast
+// poll response. For 0xdc broadcast notifications, use [ParseBroadcastStatus].
 func ParseDeviceStatus(n Notification) (DeviceStatus, error) {
-	if n.Opcode != 0xdb && n.Opcode != 0xdc {
-		return DeviceStatus{}, fmt.Errorf("%w: expected opcode 0xdb/0xdc, got 0x%02x", ErrInvalidPacket, n.Opcode)
+	if n.Opcode != 0xdb {
+		return DeviceStatus{}, fmt.Errorf("%w: expected opcode 0xdb, got 0x%02x", ErrInvalidPacket, n.Opcode)
 	}
 	if len(n.Payload) < 10 {
 		return DeviceStatus{}, fmt.Errorf("%w: status payload too short (%d bytes)", ErrInvalidPacket, len(n.Payload))
@@ -93,6 +104,49 @@ func ParseDeviceStatus(n Notification) (DeviceStatus, error) {
 	ds.On = n.Payload[9] != 0
 
 	return ds, nil
+}
+
+// ParseBroadcastStatus extracts up to two [BroadcastDeviceStatus] values
+// from a 0xdc broadcast notification.
+//
+// 0xdc notifications are sent in a burst after a 0xc5 status query or
+// SetUTC time sync, and also as unsolicited events when a device is
+// physically toggled. Each notification packs two 4-byte device slots:
+//
+//	slot = address(1) | routing_metric(1) | brightness(1) | flags(1)
+//
+// The second slot is zeroed if only one device is reported.
+func ParseBroadcastStatus(n Notification) ([]BroadcastDeviceStatus, error) {
+	if n.Opcode != 0xdc {
+		return nil, fmt.Errorf("%w: expected opcode 0xdc, got 0x%02x", ErrInvalidPacket, n.Opcode)
+	}
+	if len(n.Payload) < 8 {
+		return nil, fmt.Errorf("%w: broadcast status payload too short (%d bytes)", ErrInvalidPacket, len(n.Payload))
+	}
+
+	var out []BroadcastDeviceStatus
+
+	// Slot A: payload[0..3]
+	if n.Payload[0] != 0x00 {
+		out = append(out, BroadcastDeviceStatus{
+			Address:       Address(n.Payload[0]),
+			RoutingMetric: n.Payload[1],
+			Brightness:    n.Payload[2],
+			Flags:         n.Payload[3],
+		})
+	}
+
+	// Slot B: payload[4..7]
+	if n.Payload[4] != 0x00 {
+		out = append(out, BroadcastDeviceStatus{
+			Address:       Address(n.Payload[4]),
+			RoutingMetric: n.Payload[5],
+			Brightness:    n.Payload[6],
+			Flags:         n.Payload[7],
+		})
+	}
+
+	return out, nil
 }
 
 // ParseGroupMembership extracts a [GroupMembership] from a 0xd4 notification.
