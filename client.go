@@ -283,8 +283,20 @@ func (c *Client) FindMe(ctx context.Context, dst Address, start bool) error {
 	return c.send(ctx, command.FindMe(uint16(dst), start))
 }
 
+// SyncTime broadcasts the current time to all mesh devices. This is
+// called automatically during [Client.Login], but can be called again
+// to re-sync the mesh clock during long-running sessions.
+func (c *Client) SyncTime(ctx context.Context) error {
+	return c.send(ctx, command.SetUTC(time.Now()))
+}
+
 // CreateAlarm writes an alarm record to the mesh coordinator and returns
 // the assigned slot index.
+//
+// Alarm times are interpreted relative to the mesh clock, which is set
+// once during [Client.Login] via a time sync broadcast. If the session
+// has been running for a long time, call [Client.SyncTime] before
+// creating alarms to ensure the mesh clock is accurate.
 func (c *Client) CreateAlarm(ctx context.Context, record schedule.AlarmRecord) (uint8, error) {
 	ctx, cancel := context.WithTimeout(ctx, c.cfg.commandTimeout)
 	defer cancel()
