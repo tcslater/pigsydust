@@ -2,19 +2,19 @@
   <img src="splash.png" alt="PiggsyDust" width="400">
 </p>
 
-A Go library for controlling [SAL Pixie](https://pixieplus.com.au/) / Telink BLE mesh wall switches — fully offline, no cloud, no hub, no app dependency.
+A Go library for controlling [SAL Pixie](https://pixieplus.com.au/) / Telink BLE mesh wall switches - fully offline, no cloud, no hub, no app dependency.
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/tcslater/piggsydust.svg)](https://pkg.go.dev/github.com/tcslater/piggsydust)
 
 ## Features
 
-- **Full protocol implementation** — login, session key derivation, AES-CCM encryption/decryption
-- **Device control** — on/off, group on/off, LED indicator control, find-me blink
-- **Status monitoring** — broadcast queries, unicast polls, real-time notifications
-- **Group management** — set membership, query groups, probe addresses
-- **Schedules** — create/list/delete alarms, countdown timers, recurring schedules with timezone support
-- **BLE-library agnostic** — implement the `Transport` interface with any BLE stack
-- **Reference BLE transport** — ready-to-use adapter via [`tinygo.org/x/bluetooth`](https://tinygo.org/x/bluetooth) in the [`ble`](./ble) submodule
+- **Full protocol implementation** - login, session key derivation, AES-CCM encryption/decryption
+- **Device control** - on/off, group on/off, LED indicator control, find-me blink
+- **Status monitoring** - broadcast queries, unicast polls, real-time notifications
+- **Group management** - set membership, query groups, probe addresses
+- **Schedules** - create/list/delete alarms, countdown timers, recurring schedules with timezone support
+- **BLE-library agnostic** - implement the `Transport` interface with any BLE stack
+- **Reference BLE transport** - ready-to-use adapter via [`tinygo.org/x/bluetooth`](https://tinygo.org/x/bluetooth) in the [`ble`](./ble) submodule
 
 ## Architecture
 
@@ -22,7 +22,7 @@ The library is split into two Go modules:
 
 | Module | Import path | Purpose |
 |--------|-------------|---------|
-| Core | `github.com/tcslater/piggsydust` | Protocol logic, encryption, command building — zero BLE dependencies |
+| Core | `github.com/tcslater/piggsydust` | Protocol logic, encryption, command building - zero BLE dependencies |
 | BLE transport | `github.com/tcslater/piggsydust/ble` | Reference `Transport` implementation using tinygo bluetooth |
 
 Users who prefer a different BLE library (go-ble, CoreBluetooth bindings, etc.) only need the core module and implement the 5-method `Transport` interface.
@@ -122,14 +122,14 @@ type Transport interface {
 }
 ```
 
-The Telink mesh GATT service UUID is `00010203-0405-0607-0809-0a0b0c0d1910` with characteristic suffixes `1911`–`1914`.
+The Telink mesh GATT service UUID is `00010203-0405-0607-0809-0a0b0c0d1910` with characteristic suffixes `1911`-`1914`.
 
 ## Mesh credentials
 
 All nodes in a Pixie mesh share two values:
 
-- **Mesh name** — typically `"Smart Light"` (the firmware default)
-- **Mesh password** — the numeric string shown in the Pixie app's "Share Home" screen
+- **Mesh name** - typically `"Smart Light"` (the firmware default)
+- **Mesh password** - the numeric string shown in the Pixie app's "Share Home" screen
 
 ## Protocol reference
 
