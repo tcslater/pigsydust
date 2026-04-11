@@ -1,4 +1,4 @@
-package piggsydust
+package pigsydust
 
 import (
 	"io"

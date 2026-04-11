@@ -5,7 +5,7 @@ package schedule
 import (
 	"fmt"
 
-	"github.com/tcslater/piggsydust/internal/byteutil"
+	"github.com/tcslater/pigsydust/internal/byteutil"
 )
 
 // AlarmType distinguishes regular timers from countdown timers.
@@ -120,7 +120,7 @@ func (a AlarmRecord) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary deserializes a 16-byte wire format into an alarm record.
 func (a *AlarmRecord) UnmarshalBinary(data []byte) error {
 	if len(data) < 16 {
-		return fmt.Errorf("piggsydust/schedule: alarm record too short (%d bytes, need 16)", len(data))
+		return fmt.Errorf("pigsydust/schedule: alarm record too short (%d bytes, need 16)", len(data))
 	}
 
 	a.ID = data[0]

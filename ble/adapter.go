@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tcslater/piggsydust"
+	"github.com/tcslater/pigsydust"
 	"tinygo.org/x/bluetooth"
 )
 
@@ -69,7 +69,7 @@ func NewAdapter() (*Adapter, error) {
 // Connection holds a connected BLE device and its discovered GATT characteristics.
 type Connection struct {
 	device bluetooth.Device
-	gwMAC  piggsydust.MACAddress
+	gwMAC  pigsydust.MACAddress
 
 	charNotify bluetooth.DeviceCharacteristic
 	charCmd    bluetooth.DeviceCharacteristic
@@ -86,7 +86,7 @@ func (c *Connection) Close() error {
 //
 // The adv parameter should come from a prior [Adapter.Scan] call. The MAC
 // address is extracted from the advertisement's manufacturer data.
-func (a *Adapter) Connect(ctx context.Context, adv piggsydust.AdvertisementData, addr bluetooth.Address) (*Connection, error) {
+func (a *Adapter) Connect(ctx context.Context, adv pigsydust.AdvertisementData, addr bluetooth.Address) (*Connection, error) {
 	device, err := a.bt.Connect(addr, bluetooth.ConnectionParams{})
 	if err != nil {
 		return nil, fmt.Errorf("ble: connecting: %w", err)
@@ -156,7 +156,7 @@ func (c *Connection) enrichMACFromDIS(device bluetooth.Device) error {
 		return fmt.Errorf("ble: reading DIS model number: %w", err)
 	}
 
-	mac, err := piggsydust.ParseMAC(string(buf[:n]))
+	mac, err := pigsydust.ParseMAC(string(buf[:n]))
 	if err != nil {
 		return err
 	}

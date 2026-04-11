@@ -1,6 +1,6 @@
 package command
 
-import "github.com/tcslater/piggsydust/internal/byteutil"
+import "github.com/tcslater/pigsydust/internal/byteutil"
 
 // WriteAlarm builds the two fragment commands (opcode 0xcc) for creating
 // or updating an alarm record.

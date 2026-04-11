@@ -1,14 +1,14 @@
-package piggsydust_test
+package pigsydust_test
 
 import (
 	"fmt"
 
-	"github.com/tcslater/piggsydust"
-	"github.com/tcslater/piggsydust/schedule"
+	"github.com/tcslater/pigsydust"
+	"github.com/tcslater/pigsydust/schedule"
 )
 
 func ExampleGroupAddress() {
-	addr := piggsydust.GroupAddress(3)
+	addr := pigsydust.GroupAddress(3)
 	fmt.Println(addr)
 	fmt.Println(addr.IsGroup())
 
@@ -21,7 +21,7 @@ func ExampleGroupAddress() {
 }
 
 func ExampleParseMAC() {
-	mac, err := piggsydust.ParseMAC("AA:BB:CC:DD:EE:FF")
+	mac, err := pigsydust.ParseMAC("AA:BB:CC:DD:EE:FF")
 	if err != nil {
 		panic(err)
 	}
@@ -39,7 +39,7 @@ func ExampleNewRecurringAlarm() {
 		8, 0,                                          // 8:00 AM local
 		schedule.Weekdays,                             // Mon-Fri
 		10,                                            // AEST = UTC+10
-		uint16(piggsydust.AddressBroadcast),           // target all devices
+		uint16(pigsydust.AddressBroadcast),           // target all devices
 		schedule.ActionOnFull,                         // turn on at 100%
 	)
 

@@ -1,4 +1,4 @@
-package piggsydust
+package pigsydust
 
 import (
 	"context"
@@ -7,9 +7,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/tcslater/piggsydust/command"
-	"github.com/tcslater/piggsydust/crypto"
-	"github.com/tcslater/piggsydust/schedule"
+	"github.com/tcslater/pigsydust/command"
+	"github.com/tcslater/pigsydust/crypto"
+	"github.com/tcslater/pigsydust/schedule"
 )
 
 // Client manages an authenticated session with a Pixie BLE mesh.
@@ -59,25 +59,25 @@ func (c *Client) Login(ctx context.Context, meshName, meshPassword string) error
 		r = rand.Reader
 	}
 	if _, err := io.ReadFull(r, randA[:]); err != nil {
-		return fmt.Errorf("piggsydust: generating login nonce: %w", err)
+		return fmt.Errorf("pigsydust: generating login nonce: %w", err)
 	}
 
 	// Generate session salt.
 	var salt [2]byte
 	if _, err := io.ReadFull(r, salt[:]); err != nil {
-		return fmt.Errorf("piggsydust: generating session salt: %w", err)
+		return fmt.Errorf("pigsydust: generating session salt: %w", err)
 	}
 
 	// Build and send login request.
 	req := crypto.LoginRequest(meshName, meshPassword, randA)
 	if err := c.transport.WritePair(ctx, req[:]); err != nil {
-		return fmt.Errorf("piggsydust: writing login request: %w", err)
+		return fmt.Errorf("pigsydust: writing login request: %w", err)
 	}
 
 	// Read login response.
 	resp, err := c.transport.ReadPair(ctx)
 	if err != nil {
-		return fmt.Errorf("piggsydust: reading login response: %w", err)
+		return fmt.Errorf("pigsydust: reading login response: %w", err)
 	}
 
 	randB, err := crypto.ParseLoginResponse(resp)
@@ -97,7 +97,7 @@ func (c *Client) Login(ctx context.Context, meshName, meshPassword string) error
 	// Subscribe to notifications and start listener.
 	notifyCh, err := c.transport.SubscribeNotify(ctx)
 	if err != nil {
-		return fmt.Errorf("piggsydust: subscribing to notifications: %w", err)
+		return fmt.Errorf("pigsydust: subscribing to notifications: %w", err)
 	}
 
 	listenerCtx, cancel := context.WithCancel(context.Background())

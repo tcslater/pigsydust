@@ -1,6 +1,6 @@
 package command
 
-import "github.com/tcslater/piggsydust/internal/byteutil"
+import "github.com/tcslater/pigsydust/internal/byteutil"
 
 // OnOff builds an on/off command (opcode 0xed).
 //

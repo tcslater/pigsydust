@@ -1,6 +1,6 @@
 package crypto
 
-import "github.com/tcslater/piggsydust/internal/byteutil"
+import "github.com/tcslater/pigsydust/internal/byteutil"
 
 // DeriveSessionKey computes the per-session encryption key from the
 // mesh credentials and the login nonces.

@@ -3,7 +3,7 @@ package crypto
 import (
 	"crypto/aes"
 
-	"github.com/tcslater/piggsydust/internal/byteutil"
+	"github.com/tcslater/pigsydust/internal/byteutil"
 )
 
 // ReversedAES performs the Telink reversed AES-128-ECB operation:
@@ -20,7 +20,7 @@ func ReversedAES(key, plaintext [16]byte) [16]byte {
 	block, err := aes.NewCipher(rk[:])
 	if err != nil {
 		// aes.NewCipher only fails for invalid key sizes; 16 is always valid.
-		panic("piggsydust/crypto: " + err.Error())
+		panic("pigsydust/crypto: " + err.Error())
 	}
 
 	var ct [16]byte

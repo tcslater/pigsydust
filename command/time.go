@@ -3,7 +3,7 @@ package command
 import (
 	"time"
 
-	"github.com/tcslater/piggsydust/internal/byteutil"
+	"github.com/tcslater/pigsydust/internal/byteutil"
 )
 
 // SetUTC builds a time synchronisation broadcast (opcode 0xc5).

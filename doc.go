@@ -1,4 +1,4 @@
-// Package piggsydust provides a Go client for controlling SAL Pixie / Telink
+// Package pigsydust provides a Go client for controlling SAL Pixie / Telink
 // BLE mesh wall switches.
 //
 // Pixie switches use a proprietary BLE mesh protocol with AES-CCM encryption.
@@ -25,21 +25,21 @@
 //	transport := myBLEAdapter.Connect(ctx, peripheral)
 //
 //	// 3. Create a client and login.
-//	client := piggsydust.NewClient(transport,
-//	    piggsydust.WithLogger(slog.Default()),
+//	client := pigsydust.NewClient(transport,
+//	    pigsydust.WithLogger(slog.Default()),
 //	)
 //	err := client.Login(ctx, "Smart Light", "12345678")
 //
 //	// 4. Control devices.
-//	client.TurnOn(ctx, piggsydust.AddressBroadcast)
-//	client.SetLEDOrange(ctx, piggsydust.Address(1), 15)
+//	client.TurnOn(ctx, pigsydust.AddressBroadcast)
+//	client.SetLEDOrange(ctx, pigsydust.Address(1), 15)
 //
 //	// 5. Clean up.
 //	client.Close()
 //
 // # Subpackages
 //
-//   - [github.com/tcslater/piggsydust/crypto]: AES-CCM encryption primitives
-//   - [github.com/tcslater/piggsydust/command]: protocol command builders
-//   - [github.com/tcslater/piggsydust/schedule]: alarm record construction and timezone conversion
-package piggsydust
+//   - [github.com/tcslater/pigsydust/crypto]: AES-CCM encryption primitives
+//   - [github.com/tcslater/pigsydust/command]: protocol command builders
+//   - [github.com/tcslater/pigsydust/schedule]: alarm record construction and timezone conversion
+package pigsydust

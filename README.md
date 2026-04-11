@@ -4,7 +4,7 @@
 
 A Go library for controlling [SAL Pixie](https://pixieplus.com.au/) / Telink BLE mesh wall switches - fully offline, no cloud, no hub, no app dependency.
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/tcslater/piggsydust.svg)](https://pkg.go.dev/github.com/tcslater/piggsydust)
+[![Go Reference](https://pkg.go.dev/badge/github.com/tcslater/pigsydust.svg)](https://pkg.go.dev/github.com/tcslater/pigsydust)
 
 ## Features
 
@@ -22,8 +22,8 @@ The library is split into two Go modules:
 
 | Module | Import path | Purpose |
 |--------|-------------|---------|
-| Core | `github.com/tcslater/piggsydust` | Protocol logic, encryption, command building - zero BLE dependencies |
-| BLE transport | `github.com/tcslater/piggsydust/ble` | Reference `Transport` implementation using tinygo bluetooth |
+| Core | `github.com/tcslater/pigsydust` | Protocol logic, encryption, command building - zero BLE dependencies |
+| BLE transport | `github.com/tcslater/pigsydust/ble` | Reference `Transport` implementation using tinygo bluetooth |
 
 Users who prefer a different BLE library (go-ble, CoreBluetooth bindings, etc.) only need the core module and implement the 5-method `Transport` interface.
 
@@ -31,19 +31,19 @@ Users who prefer a different BLE library (go-ble, CoreBluetooth bindings, etc.) 
 
 | Package | Purpose |
 |---------|---------|
-| `piggsydust` | Client API, Transport interface, types, notification parsing |
-| `piggsydust/crypto` | Reversed AES, login handshake, session keys, AES-CCM encrypt/decrypt |
-| `piggsydust/command` | Protocol command builders for all opcodes |
-| `piggsydust/schedule` | Alarm record construction, weekday bitmask, timezone conversion |
+| `pigsydust` | Client API, Transport interface, types, notification parsing |
+| `pigsydust/crypto` | Reversed AES, login handshake, session keys, AES-CCM encrypt/decrypt |
+| `pigsydust/command` | Protocol command builders for all opcodes |
+| `pigsydust/schedule` | Alarm record construction, weekday bitmask, timezone conversion |
 
 ## Install
 
 ```bash
 # Core library only (no BLE dependency)
-go get github.com/tcslater/piggsydust
+go get github.com/tcslater/pigsydust
 
 # With the tinygo BLE transport
-go get github.com/tcslater/piggsydust/ble
+go get github.com/tcslater/pigsydust/ble
 ```
 
 ## Quick start
@@ -55,8 +55,8 @@ import (
     "context"
     "log"
 
-    "github.com/tcslater/piggsydust"
-    "github.com/tcslater/piggsydust/ble"
+    "github.com/tcslater/pigsydust"
+    "github.com/tcslater/pigsydust/ble"
 )
 
 func main() {
@@ -69,7 +69,7 @@ func main() {
     }
 
     // 2. Scan for Pixie devices.
-    results, err := adapter.Scan(ctx, piggsydust.ScanFilter{
+    results, err := adapter.Scan(ctx, pigsydust.ScanFilter{
         MeshName:    "Smart Light",
         GatewayOnly: true,
     })
@@ -87,14 +87,14 @@ func main() {
     defer conn.Close()
 
     // 4. Create a client and authenticate.
-    client := piggsydust.NewClient(ble.NewTransport(conn))
+    client := pigsydust.NewClient(ble.NewTransport(conn))
     if err := client.Login(ctx, "Smart Light", "12345678"); err != nil {
         log.Fatal(err)
     }
     defer client.Close()
 
     // 5. Control devices.
-    client.TurnOn(ctx, piggsydust.AddressBroadcast)
+    client.TurnOn(ctx, pigsydust.AddressBroadcast)
 }
 ```
 

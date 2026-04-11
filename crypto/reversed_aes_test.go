@@ -4,7 +4,7 @@ import (
 	"crypto/aes"
 	"testing"
 
-	"github.com/tcslater/piggsydust/internal/byteutil"
+	"github.com/tcslater/pigsydust/internal/byteutil"
 )
 
 func TestReversedAES_RoundTrip(t *testing.T) {

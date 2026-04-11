@@ -3,7 +3,7 @@ package ble
 import (
 	"context"
 
-	"github.com/tcslater/piggsydust"
+	"github.com/tcslater/pigsydust"
 	"tinygo.org/x/bluetooth"
 )
 
@@ -17,7 +17,7 @@ import (
 // Scan filters by the 16-bit service UUID 0xCDAB and manufacturer ID
 // 0x0211 (Skytone). Additional filtering by mesh name, network ID,
 // and gateway-only is applied according to the filter.
-func (a *Adapter) Scan(ctx context.Context, filter piggsydust.ScanFilter) (<-chan ScanResult, error) {
+func (a *Adapter) Scan(ctx context.Context, filter pigsydust.ScanFilter) (<-chan ScanResult, error) {
 	ch := make(chan ScanResult, 16)
 
 	go func() {
@@ -50,7 +50,7 @@ func (a *Adapter) Scan(ctx context.Context, filter piggsydust.ScanFilter) (<-cha
 // ScanResult pairs parsed advertisement data with the raw BLE address
 // needed for [Adapter.Connect].
 type ScanResult struct {
-	Advertisement piggsydust.AdvertisementData
+	Advertisement pigsydust.AdvertisementData
 	Address       bluetooth.Address
 	RSSI          int16
 }
@@ -62,7 +62,7 @@ func (a *Adapter) StopScan() error {
 
 // parseScanResult extracts Pixie advertisement data from a raw BLE scan result,
 // applying the given filter. Returns false if the result doesn't match.
-func parseScanResult(result bluetooth.ScanResult, filter piggsydust.ScanFilter) (ScanResult, bool) {
+func parseScanResult(result bluetooth.ScanResult, filter pigsydust.ScanFilter) (ScanResult, bool) {
 	// Check for the Pixie service UUID.
 	if !result.AdvertisementPayload.HasServiceUUID(ServiceUUID) {
 		return ScanResult{}, false
@@ -87,7 +87,7 @@ func parseScanResult(result bluetooth.ScanResult, filter piggsydust.ScanFilter) 
 	}
 
 	// Parse the manufacturer data.
-	adv, err := piggsydust.ParseManufacturerData(ManufacturerIDSkytone, mfgData)
+	adv, err := pigsydust.ParseManufacturerData(ManufacturerIDSkytone, mfgData)
 	if err != nil {
 		return ScanResult{}, false
 	}
@@ -100,7 +100,7 @@ func parseScanResult(result bluetooth.ScanResult, filter piggsydust.ScanFilter) 
 	}
 
 	// Apply gateway-only filter.
-	if filter.GatewayOnly && adv.DeviceType != piggsydust.DeviceTypeGateway {
+	if filter.GatewayOnly && adv.DeviceType != pigsydust.DeviceTypeGateway {
 		return ScanResult{}, false
 	}
 

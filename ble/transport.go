@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/tcslater/piggsydust"
+	"github.com/tcslater/pigsydust"
 )
 
-// Transport implements [piggsydust.Transport] over a BLE connection
+// Transport implements [pigsydust.Transport] over a BLE connection
 // established via [Adapter.Connect].
 //
 // All methods are safe for concurrent use.
@@ -17,7 +17,7 @@ type Transport struct {
 	mu   sync.Mutex // serialises writes to avoid interleaving
 }
 
-// NewTransport creates a [piggsydust.Transport] from an established
+// NewTransport creates a [pigsydust.Transport] from an established
 // BLE connection.
 func NewTransport(conn *Connection) *Transport {
 	return &Transport{conn: conn}
@@ -93,6 +93,6 @@ func (t *Transport) SubscribeNotify(ctx context.Context) (<-chan []byte, error) 
 }
 
 // GatewayMAC returns the 6-byte MAC address of the connected gateway.
-func (t *Transport) GatewayMAC() piggsydust.MACAddress {
+func (t *Transport) GatewayMAC() pigsydust.MACAddress {
 	return t.conn.gwMAC
 }

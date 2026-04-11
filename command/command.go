@@ -7,10 +7,10 @@
 //
 // Addresses are represented as uint16 to avoid import cycles with the
 // root package. Use the address constants defined in this package or
-// cast from [piggsydust.Address].
+// cast from [pigsydust.Address].
 package command
 
-import "github.com/tcslater/piggsydust/internal/byteutil"
+import "github.com/tcslater/pigsydust/internal/byteutil"
 
 const (
 	// VendorSkytone is the standard vendor ID for most commands.

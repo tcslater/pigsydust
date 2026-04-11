@@ -3,12 +3,12 @@ package ble
 import (
 	"testing"
 
-	"github.com/tcslater/piggsydust"
+	"github.com/tcslater/pigsydust"
 	"tinygo.org/x/bluetooth"
 )
 
 // Compile-time interface checks.
-var _ piggsydust.Transport = (*Transport)(nil)
+var _ pigsydust.Transport = (*Transport)(nil)
 
 func TestUUID_MeshService(t *testing.T) {
 	// Verify the mesh service UUID ends with 1910.

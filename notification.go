@@ -1,9 +1,9 @@
-package piggsydust
+package pigsydust
 
 import (
 	"fmt"
 
-	"github.com/tcslater/piggsydust/internal/byteutil"
+	"github.com/tcslater/pigsydust/internal/byteutil"
 )
 
 // Notification represents a decoded notification from a mesh device.

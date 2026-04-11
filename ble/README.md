@@ -1,16 +1,16 @@
-# piggsydust/ble
+# pigsydust/ble
 
-Reference BLE transport for [piggsydust](https://github.com/tcslater/piggsydust) using [`tinygo.org/x/bluetooth`](https://tinygo.org/x/bluetooth).
+Reference BLE transport for [pigsydust](https://github.com/tcslater/pigsydust) using [`tinygo.org/x/bluetooth`](https://tinygo.org/x/bluetooth).
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/tcslater/piggsydust/ble.svg)](https://pkg.go.dev/github.com/tcslater/piggsydust/ble)
+[![Go Reference](https://pkg.go.dev/badge/github.com/tcslater/pigsydust/ble.svg)](https://pkg.go.dev/github.com/tcslater/pigsydust/ble)
 
 ## Install
 
 ```bash
-go get github.com/tcslater/piggsydust/ble
+go get github.com/tcslater/pigsydust/ble
 ```
 
-This is a **separate Go module** so the core `piggsydust` library stays free of BLE dependencies. Only import this package if you want to use the tinygo bluetooth stack.
+This is a **separate Go module** so the core `pigsydust` library stays free of BLE dependencies. Only import this package if you want to use the tinygo bluetooth stack.
 
 ## What's included
 
@@ -19,7 +19,7 @@ This is a **separate Go module** so the core `piggsydust` library stays free of 
 | `Adapter` | Wraps `bluetooth.Adapter` — enable, scan, connect |
 | `Scanner` (via `Adapter.Scan`) | Discovers Pixie devices with filtering by mesh name, network ID, gateway role |
 | `Connection` | Holds a connected device with discovered GATT characteristics |
-| `Transport` | Implements `piggsydust.Transport` — ready to pass to `piggsydust.NewClient` |
+| `Transport` | Implements `pigsydust.Transport` — ready to pass to `pigsydust.NewClient` |
 
 ## Usage
 
@@ -27,7 +27,7 @@ This is a **separate Go module** so the core `piggsydust` library stays free of 
 adapter, _ := ble.NewAdapter()
 
 // Scan for gateway devices on the "Smart Light" mesh.
-results, _ := adapter.Scan(ctx, piggsydust.ScanFilter{
+results, _ := adapter.Scan(ctx, pigsydust.ScanFilter{
     MeshName:    "Smart Light",
     GatewayOnly: true,
 })
@@ -38,10 +38,10 @@ adapter.StopScan()
 conn, _ := adapter.Connect(ctx, result.Advertisement, result.Address)
 defer conn.Close()
 
-// Hand the transport to piggsydust.
-client := piggsydust.NewClient(ble.NewTransport(conn))
+// Hand the transport to pigsydust.
+client := pigsydust.NewClient(ble.NewTransport(conn))
 client.Login(ctx, "Smart Light", "12345678")
-client.TurnOn(ctx, piggsydust.AddressBroadcast)
+client.TurnOn(ctx, pigsydust.AddressBroadcast)
 ```
 
 ## Platform notes

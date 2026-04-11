@@ -1,9 +1,9 @@
-module github.com/tcslater/piggsydust/ble
+module github.com/tcslater/pigsydust/ble
 
 go 1.26.1
 
 require (
-	github.com/tcslater/piggsydust v0.0.0
+	github.com/tcslater/pigsydust v0.0.0
 	tinygo.org/x/bluetooth v0.10.0
 )
 
@@ -20,4 +20,4 @@ require (
 	golang.org/x/sys v0.11.0 // indirect
 )
 
-replace github.com/tcslater/piggsydust => ../
+replace github.com/tcslater/pigsydust => ../

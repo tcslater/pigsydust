@@ -1,4 +1,4 @@
-package piggsydust
+package pigsydust
 
 import (
 	"encoding/binary"
@@ -28,13 +28,13 @@ func ParseMAC(s string) (MACAddress, error) {
 	var m MACAddress
 	parts := strings.Split(s, ":")
 	if len(parts) != 6 {
-		return m, fmt.Errorf("piggsydust: invalid MAC address %q: expected 6 octets", s)
+		return m, fmt.Errorf("pigsydust: invalid MAC address %q: expected 6 octets", s)
 	}
 	for i, p := range parts {
 		var b byte
 		_, err := fmt.Sscanf(p, "%02x", &b)
 		if err != nil {
-			return m, fmt.Errorf("piggsydust: invalid MAC address %q: bad octet %q", s, p)
+			return m, fmt.Errorf("pigsydust: invalid MAC address %q: bad octet %q", s, p)
 		}
 		m[i] = b
 	}
@@ -78,11 +78,11 @@ func ParseManufacturerData(companyID uint16, data []byte) (AdvertisementData, er
 	var ad AdvertisementData
 
 	if companyID != 0x0211 {
-		return ad, fmt.Errorf("piggsydust: unexpected manufacturer ID 0x%04x (expected 0x0211)", companyID)
+		return ad, fmt.Errorf("pigsydust: unexpected manufacturer ID 0x%04x (expected 0x0211)", companyID)
 	}
 
 	if len(data) < 21 {
-		return ad, fmt.Errorf("piggsydust: manufacturer data too short (%d bytes, need 21)", len(data))
+		return ad, fmt.Errorf("pigsydust: manufacturer data too short (%d bytes, need 21)", len(data))
 	}
 
 	// MAC bytes at offset 2-5 are in little-endian order: [5,4,3,2]

@@ -1,6 +1,6 @@
 package crypto
 
-import "github.com/tcslater/piggsydust/internal/byteutil"
+import "github.com/tcslater/pigsydust/internal/byteutil"
 
 // LoginRequest builds the 17-byte CHAR_PAIR (0x1914) write payload for
 // the login handshake.

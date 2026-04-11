@@ -1,7 +1,7 @@
-// Package ble provides a reference [piggsydust.Transport] and [piggsydust.Scanner]
+// Package ble provides a reference [pigsydust.Transport] and [pigsydust.Scanner]
 // implementation using [tinygo.org/x/bluetooth].
 //
-// This package is a separate Go module so that the core piggsydust library
+// This package is a separate Go module so that the core pigsydust library
 // remains free of BLE dependencies. Import this package only if you want
 // to use the tinygo bluetooth stack.
 //
@@ -11,7 +11,7 @@
 //	adapter, err := ble.NewAdapter()
 //
 //	// Scan for Pixie mesh devices.
-//	results, err := adapter.Scan(ctx, piggsydust.ScanFilter{
+//	results, err := adapter.Scan(ctx, pigsydust.ScanFilter{
 //	    MeshName:    "Smart Light",
 //	    GatewayOnly: true,
 //	})
@@ -22,10 +22,10 @@
 //	conn, err := adapter.Connect(ctx, result.Advertisement, result.Address)
 //	defer conn.Close()
 //
-//	// Create a piggsydust client.
-//	client := piggsydust.NewClient(ble.NewTransport(conn))
+//	// Create a pigsydust client.
+//	client := pigsydust.NewClient(ble.NewTransport(conn))
 //	err = client.Login(ctx, "Smart Light", "12345678")
-//	client.TurnOn(ctx, piggsydust.AddressBroadcast)
+//	client.TurnOn(ctx, pigsydust.AddressBroadcast)
 //
 // # Platform Notes
 //
