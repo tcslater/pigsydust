@@ -400,13 +400,39 @@ dst(2 LE) || 0xda || 11 02 || 10 00
 
 #### 0xdc — Device Status Notification
 
-```
-0xdc || 11 02 || ...
-```
+Used for both **broadcast status bursts** (response to `0xc5` query or
+`set_utc`) and **unsolicited state-change events** (physical switch
+toggle). The wire `src_addr` is always `0x0000`.
 
-A variant of `0xdb` sent in a burst after the initial `0xc5` broadcast.
-Same basic format; provides the initial state of all mesh devices at
-session start.
+Unlike `0xdb`, the device address is embedded in the payload rather than
+the wire header. Each notification carries **one or two** device statuses
+in a 4-byte-per-device packed format.
+
+13-byte decrypted notification plaintext:
+
+| Offset | Content |
+|--------|---------|
+| 0 | `0xdc` (opcode) |
+| 1-2 | `0x11 0x02` (vendor) |
+| 3 | Device A: mesh address (low byte = MAC[5]) |
+| 4 | Device A: routing metric (`0x00` = unreachable) |
+| 5 | Device A: brightness (`0x00` = off, `0x64` = on at 100%) |
+| 6 | Device A: flags |
+| 7 | Device B: mesh address (`0x00` if absent) |
+| 8 | Device B: routing metric |
+| 9 | Device B: brightness |
+| 10 | Device B: flags |
+| 11-12 | `0x00 0x00` (padding) |
+
+**Broadcast burst**: a mesh with N devices produces ceil(N/2)
+notifications, each carrying two device statuses. Triggered by `0xc5`
+status query or `set_utc` time sync.
+
+**Unsolicited event**: a single device status in the first slot; the
+second slot (bytes 7-10) is zeroed. Triggered by physical switch toggle.
+
+The device address in the payload is the low byte of the mesh address
+(which also equals the last byte of the device's MAC).
 
 ### Group Management
 
