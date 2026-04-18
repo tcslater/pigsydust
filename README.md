@@ -133,7 +133,7 @@ All nodes in a Pixie mesh share two values:
 
 ## Protocol reference
 
-See [`docs/PROTOCOL-REFERENCE.md`](docs/PROTOCOL-REFERENCE.md) for the complete reverse-engineered protocol specification.
+See the [PROTOCOL-REFERENCE](https://github.com/tcslater/pigsydust-py/blob/main/docs/PROTOCOL-REFERENCE.md) in `pigsydust-py` for the complete protocol specification — it is the single source of truth across the Pixie projects.
 
 ## License
 
