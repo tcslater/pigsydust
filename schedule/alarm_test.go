@@ -1,143 +1,141 @@
 package schedule
 
-import "testing"
+import (
+	"testing"
 
-func TestAlarmRecord_MarshalUnmarshal(t *testing.T) {
-	alarm := AlarmRecord{
-		ID:     0x01,
-		Repeat: Weekdays,
-		Hour:   22,
-		Minute: 30,
-		Type:   AlarmRegular,
-		Active: true,
-		Target: 0xFFFF,
-		Action: ActionOnFull,
-	}
+	"github.com/tcslater/pigsydust"
+)
 
-	data, err := alarm.MarshalBinary()
+func TestCountdownLayout(t *testing.T) {
+	r, err := Countdown(0x0042, 5)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if len(data) != 16 {
-		t.Fatalf("length: got %d, want 16", len(data))
+	if r.ID() != CountdownID {
+		t.Errorf("id = 0x%02x, want 0xC9", r.ID())
 	}
-
-	var decoded AlarmRecord
-	if err := decoded.UnmarshalBinary(data); err != nil {
-		t.Fatal(err)
+	if r.Kind() != KindCountdown {
+		t.Errorf("kind = 0x%02x, want 0x03", byte(r.Kind()))
 	}
-
-	if decoded.ID != alarm.ID {
-		t.Errorf("ID: got %d, want %d", decoded.ID, alarm.ID)
+	if r.Duration() != 5 {
+		t.Errorf("duration = %d, want 5", r.Duration())
 	}
-	if decoded.Repeat != alarm.Repeat {
-		t.Errorf("Repeat: got 0x%02x, want 0x%02x", decoded.Repeat, alarm.Repeat)
+	if r.Target() != 0x0042 {
+		t.Errorf("target = 0x%04x, want 0x0042", uint16(r.Target()))
 	}
-	if decoded.Hour != alarm.Hour {
-		t.Errorf("Hour: got %d, want %d", decoded.Hour, alarm.Hour)
+	if r.Action() != ActionOff {
+		t.Errorf("countdown must be OFF-only, got action 0x%02x", byte(r.Action()))
 	}
-	if decoded.Minute != alarm.Minute {
-		t.Errorf("Minute: got %d, want %d", decoded.Minute, alarm.Minute)
-	}
-	if decoded.Type != alarm.Type {
-		t.Errorf("Type: got %d, want %d", decoded.Type, alarm.Type)
-	}
-	if decoded.Active != alarm.Active {
-		t.Errorf("Active: got %v, want %v", decoded.Active, alarm.Active)
-	}
-	if decoded.Target != alarm.Target {
-		t.Errorf("Target: got 0x%04x, want 0x%04x", decoded.Target, alarm.Target)
-	}
-	if decoded.Action != alarm.Action {
-		t.Errorf("Action: got 0x%02x, want 0x%02x", decoded.Action, alarm.Action)
-	}
-}
-
-func TestAlarmRecord_StateBytes(t *testing.T) {
-	// Regular alarm should have state bytes: 00 00 ff ff ff
-	alarm := AlarmRecord{
-		Type:   AlarmRegular,
-		Active: true,
-		Target: 0x0001,
-		Action: ActionOnFull,
-	}
-
-	data, _ := alarm.MarshalBinary()
-
-	if data[10] != 0x00 || data[11] != 0x00 {
-		t.Errorf("state[0:2]: got %02x %02x, want 00 00", data[10], data[11])
-	}
-	if data[12] != 0xff || data[13] != 0xff || data[14] != 0xff {
-		t.Errorf("state[2:5]: got %02x %02x %02x, want ff ff ff", data[12], data[13], data[14])
-	}
-
-	// Countdown should have all-zero state bytes.
-	countdown := AlarmRecord{
-		Type:   AlarmCountdown,
-		Active: true,
-		Target: 0x0001,
-		Action: ActionOff,
-	}
-
-	data, _ = countdown.MarshalBinary()
-	for i := 10; i < 15; i++ {
-		if data[i] != 0x00 {
-			t.Errorf("countdown state[%d]: got 0x%02x, want 0x00", i, data[i])
+	// state bytes must be zero
+	for i := 10; i <= 14; i++ {
+		if r[i] != 0 {
+			t.Errorf("countdown state byte %d = 0x%02x, must be zero", i, r[i])
 		}
 	}
 }
 
-func TestAlarmRecord_XORChecksum(t *testing.T) {
-	alarm := AlarmRecord{
-		ID:     0x01,
-		Repeat: Weekdays,
-		Hour:   8,
-		Minute: 0,
-		Active: true,
-		Target: 0xFFFF,
-		Action: ActionOnFull,
-	}
-
-	data, _ := alarm.MarshalBinary()
-
-	// Manually compute XOR.
-	var expected byte
-	for _, b := range data {
-		expected ^= b
-	}
-
-	if alarm.XORChecksum() != expected {
-		t.Errorf("checksum: got 0x%02x, want 0x%02x", alarm.XORChecksum(), expected)
+func TestCountdownZeroDurationRejected(t *testing.T) {
+	if _, err := Countdown(0x0001, 0); err == nil {
+		t.Error("expected error for zero duration")
 	}
 }
 
-func TestNewCountdown(t *testing.T) {
-	alarm := NewCountdown(30, 0x0001)
-
-	if alarm.ID != 0xc9 {
-		t.Errorf("ID: got 0x%02x, want 0xc9", alarm.ID)
+func TestOneShotStateTail(t *testing.T) {
+	r, err := OneShot(0x10, 0x0001, 22, 30, ActionOnFullBright)
+	if err != nil {
+		t.Fatal(err)
 	}
-	if alarm.Type != AlarmCountdown {
-		t.Errorf("Type: got %d, want %d", alarm.Type, AlarmCountdown)
+	if r.Repeat() != 0 {
+		t.Errorf("one-shot repeat = 0x%02x, want 0", r.Repeat())
 	}
-	if alarm.Duration != 30 {
-		t.Errorf("Duration: got %d, want 30", alarm.Duration)
+	if r.Hour() != 22 || r.Minute() != 30 {
+		t.Errorf("time = %d:%d, want 22:30", r.Hour(), r.Minute())
 	}
-	if alarm.Action != ActionOff {
-		t.Errorf("Action: got 0x%02x, want 0x00 (off-only)", alarm.Action)
+	want := [5]byte{0x00, 0x00, 0xFF, 0xFF, 0xFF}
+	for i, w := range want {
+		if r[10+i] != w {
+			t.Errorf("state byte %d = 0x%02x, want 0x%02x", 10+i, r[10+i], w)
+		}
 	}
 }
 
-func TestNewRecurringAlarm(t *testing.T) {
-	// 8 AM Mon-Fri in AEST (UTC+10) → 22:00 Sun-Thu UTC
-	alarm := NewRecurringAlarm(0x01, 8, 0, Weekdays, 10,
-		0xFFFF, ActionOnFull)
-
-	if alarm.Hour != 22 {
-		t.Errorf("Hour: got %d, want 22", alarm.Hour)
+func TestRecurringRequiresWeekdayBit(t *testing.T) {
+	if _, err := Recurring(0x10, 0x0001, 8, 0, 0, ActionOnFullBright); err == nil {
+		t.Error("expected error for repeat=0")
 	}
-	if alarm.Repeat != 0x4f {
-		t.Errorf("Repeat: got 0x%02x, want 0x4f (Sun-Thu)", alarm.Repeat)
+}
+
+func TestRecurringMasksHighBit(t *testing.T) {
+	// bit 7 must be stripped — only bits 0-6 are weekdays.
+	r, err := Recurring(0x10, 0x0001, 8, 0, 0xFF, ActionOnFullBright)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Repeat() != 0x7F {
+		t.Errorf("repeat = 0x%02x, want 0x7F (bit 7 stripped)", r.Repeat())
+	}
+}
+
+func TestXORMatchesFold(t *testing.T) {
+	r, err := OneShot(0x11, 0x0005, 10, 15, ActionOnFullBright)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var want byte
+	for _, b := range r {
+		want ^= b
+	}
+	if got := r.XOR(); got != want {
+		t.Errorf("XOR = 0x%02x, want 0x%02x", got, want)
+	}
+}
+
+func TestSetActiveToggle(t *testing.T) {
+	r, err := OneShot(0x11, 0x0005, 10, 15, ActionOnFullBright)
+	if err != nil {
+		t.Fatal(err)
+	}
+	off := r.SetActive(false)
+	if off.Active() {
+		t.Error("SetActive(false) still active")
+	}
+	if off[7] != 0 {
+		t.Errorf("active byte = 0x%02x, want 0", off[7])
+	}
+	// XOR must differ by exactly bit 0.
+	if r.XOR()^off.XOR() != 0x01 {
+		t.Errorf("enable toggle XOR delta = 0x%02x, want 0x01",
+			r.XOR()^off.XOR())
+	}
+}
+
+func TestInvalidHourMinute(t *testing.T) {
+	if _, err := OneShot(1, 0x0001, 24, 0, ActionOff); err == nil {
+		t.Error("expected error for hour=24")
+	}
+	if _, err := OneShot(1, 0x0001, 0, 60, ActionOff); err == nil {
+		t.Error("expected error for minute=60")
+	}
+}
+
+func TestTransitionKindCheck(t *testing.T) {
+	if _, err := Transition(1, 0x0001, 8, 0, Daily, KindRegular, 5, ActionOnFullBright); err == nil {
+		t.Error("Transition must reject KindRegular")
+	}
+	if _, err := Transition(1, 0x0001, 8, 0, Daily, KindFlick, 5, ActionOnFullBright); err != nil {
+		t.Errorf("Transition(KindFlick) errored: %v", err)
+	}
+}
+
+func TestGroupTarget(t *testing.T) {
+	r, err := OneShot(1, pigsydust.GroupAddress(5), 8, 0, ActionOnUnchanged)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !r.Target().IsGroup() {
+		t.Errorf("target 0x%04x should be a group address", uint16(r.Target()))
+	}
+	if r.Target().GroupID() != 5 {
+		t.Errorf("group id = %d, want 5", r.Target().GroupID())
 	}
 }

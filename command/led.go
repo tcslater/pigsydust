@@ -1,79 +1,105 @@
 package command
 
-// LEDSetBlue builds an LED indicator command (opcode 0xff) to control
-// the blue channel.
+import "github.com/tcslater/pigsydust/protocol"
+
+// LEDSetBlue builds an LED command for the blue channel (opcode 0xFF,
+// 15-byte plaintext). The blue channel is binary — any non-zero level
+// lights it.
 //
-// The blue channel is binary on/off (no PWM dimming).
-// Each packet must update exactly one channel — the orange channel
-// bytes are zeroed.
+// Each LED packet must touch exactly one channel; the orange bytes are
+// zeroed so firmware leaves orange untouched.
 func LEDSetBlue(dst uint16, on bool) Command {
-	var level byte
+	level := byte(0)
 	if on {
-		level = 0x12
+		level = protocol.LEDBlueOnLevel
 	}
 	return Command{
-		Destination:  dst,
-		Opcode:       0xff,
-		Vendor:       VendorSkytone,
-		Data:         []byte{0xa0, level, 0x00, 0x00},
+		Destination: dst,
+		Opcode:      protocol.OpLEDSet,
+		Vendor:      protocol.VendorSkytone,
+		Data: []byte{
+			protocol.LEDChBlueSelect, level,
+			0x00, 0x00, // orange untouched
+		},
 		PlaintextLen: 15,
 	}
 }
 
-// LEDSetOrange builds an LED indicator command (opcode 0xff) to control
-// the orange channel.
+// LEDSetOrange builds an LED command for the orange channel (opcode 0xFF,
+// 15-byte plaintext). Orange is PWM-dimmable; level is 0-15 (0 = off).
+// Higher bits of level are masked off by the firmware.
 //
-// The orange channel is PWM-dimmable; level is the brightness (0-15).
-// A level of 0 turns the orange LED off.
-// Each packet must update exactly one channel — the blue channel
-// bytes are zeroed.
-func LEDSetOrange(dst uint16, level uint8) Command {
+// Each LED packet must touch exactly one channel; the blue bytes are zeroed
+// so firmware leaves blue untouched.
+func LEDSetOrange(dst uint16, level byte) Command {
 	return Command{
-		Destination:  dst,
-		Opcode:       0xff,
-		Vendor:       VendorSkytone,
-		Data:         []byte{0x00, 0x00, 0xff, level & 0x0f},
+		Destination: dst,
+		Opcode:      protocol.OpLEDSet,
+		Vendor:      protocol.VendorSkytone,
+		Data: []byte{
+			0x00, 0x00, // blue untouched
+			protocol.LEDChOrangeSelect, level & 0x0F,
+		},
 		PlaintextLen: 15,
 	}
 }
 
-// LEDQuery builds an LED indicator query (opcode 0xd9).
+// LEDSetPurple builds a combined LED command lighting both channels
+// simultaneously (opcode 0xFF, 15-byte plaintext), producing purple.
 //
-// This uses vendor 0x696b (unique to this opcode). The gwMAC5 parameter
-// is the last byte of the connected gateway's MAC address — it acts as a
-// relay routing tag. Sending the wrong value causes a silent timeout.
+// Warning: sending this latches the firmware into an undefined state that
+// survives subsequent single-channel updates. Clear the state with the
+// reset sequence (blue-off → orange-off → single-channel commands).
+func LEDSetPurple(dst uint16, orangeLevel byte) Command {
+	return Command{
+		Destination: dst,
+		Opcode:      protocol.OpLEDSet,
+		Vendor:      protocol.VendorSkytone,
+		Data: []byte{
+			protocol.LEDChBlueSelect, protocol.LEDBlueOnLevel,
+			protocol.LEDChOrangeSelect, orangeLevel & 0x0F,
+		},
+		PlaintextLen: 15,
+	}
+}
+
+// LEDQuery builds an LED indicator query (opcode 0xD9, 15-byte plaintext).
+// Vendor is [protocol.VendorLEDQuery] (0x696B) — unique to this opcode.
 //
-// Required query sequence:
-//  1. Send StatusPoll to the target device
-//  2. Wait for the 0xdb response
-//  3. Wait ~210ms
-//  4. Send this LEDQuery
-//  5. 0xd3 response arrives within ~60ms
+// gwMAC5 is the last byte of the connected node's MAC, used as a firmware
+// routing tag — a wrong value causes the response to be silently dropped
+// with no error.
+//
+// The query requires a wake-up sequence on dormant devices: send a unicast
+// [StatusPoll] first, await the 0xDB wake-up notification, wait ~210 ms,
+// then send this query. The 0xD3 response arrives within ~60 ms.
 func LEDQuery(dst uint16, gwMAC5 byte) Command {
 	return Command{
-		Destination:  dst,
-		Opcode:       0xd9,
-		Vendor:       VendorLEDQuery,
-		Data:         []byte{gwMAC5, 0x00},
-		PlaintextLen: 10,
+		Destination: dst,
+		Opcode:      protocol.OpLEDQuery,
+		Vendor:      protocol.VendorLEDQuery,
+		Data: []byte{
+			gwMAC5, 0x00,
+		},
+		PlaintextLen: 15,
 	}
 }
 
-// FindMe builds a find-me LED flash command (opcode 0xf5).
-//
-// When start is true, the device blinks for 15 seconds using the
-// currently configured LED colour. When false, blinking stops.
+// FindMe builds a find-me LED flash command (opcode 0xF5, 15-byte
+// plaintext). When start is true the device blinks for ~15 seconds using
+// the currently configured LED colour; false stops blinking.
 func FindMe(dst uint16, start bool) Command {
-	var mode, duration byte
+	var data []byte
 	if start {
-		mode = 0x03
-		duration = 0x0f
+		data = []byte{protocol.FindMeModeBlink, protocol.FindMeDuration}
+	} else {
+		data = []byte{0x00, 0x00}
 	}
 	return Command{
 		Destination:  dst,
-		Opcode:       0xf5,
-		Vendor:       VendorSkytone,
-		Data:         []byte{mode, duration},
+		Opcode:       protocol.OpFindMe,
+		Vendor:       protocol.VendorSkytone,
+		Data:         data,
 		PlaintextLen: 15,
 	}
 }
