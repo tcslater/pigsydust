@@ -63,24 +63,35 @@ func (t *Transport) WriteCommand(_ context.Context, data []byte) error {
 // SubscribeNotify subscribes to CHAR_NOTIFY (0x1911) and returns a channel
 // that delivers raw 20-byte notification packets.
 //
+// Telink mesh firmware doesn't expose a standard CCCD on CHAR_NOTIFY — the
+// iOS Pixie app enables notifications by writing 0x01 directly to the
+// characteristic value. We still call EnableNotifications so the host BLE
+// stack wires up the delivery callback and flips its internal "notifying"
+// flag, then write 0x01 to actually kick the firmware.
+//
 // The channel is closed when the context is cancelled. Only one subscription
 // can be active at a time.
 func (t *Transport) SubscribeNotify(ctx context.Context) (<-chan []byte, error) {
 	ch := make(chan []byte, 64)
 
 	err := t.conn.charNotify.EnableNotifications(func(buf []byte) {
-		// Copy the buffer — the underlying BLE stack may reuse it.
 		packet := make([]byte, len(buf))
 		copy(packet, buf)
 
 		select {
 		case ch <- packet:
 		default:
-			// Channel full — drop oldest to prevent blocking the BLE callback.
 		}
 	})
 	if err != nil {
 		return nil, fmt.Errorf("ble: enabling notifications: %w", err)
+	}
+
+	// ATT Write Request (with response). Write Without Response is silently
+	// dropped by CoreBluetooth for this characteristic — the firmware only
+	// arms its notify pump on a Write Request.
+	if _, err := t.conn.charNotify.Write([]byte{0x01}); err != nil {
+		return nil, fmt.Errorf("ble: kicking Telink notify: %w", err)
 	}
 
 	// Close the channel when context is done.
