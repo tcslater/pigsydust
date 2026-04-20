@@ -2,63 +2,53 @@ package pigsydust
 
 import "context"
 
-// Transport abstracts BLE GATT operations for a connected mesh node.
-// Implementations wrap platform-specific BLE libraries (CoreBluetooth,
-// BlueZ, tinygo/bluetooth, go-ble/ble, etc.).
+// Transport is the GATT-level interface a [Client] uses to talk to a
+// connected Pixie mesh node. Implementations are provided out-of-tree (e.g.
+// the ble/ module) so that the core library stays BLE-stack-agnostic.
 //
-// The Telink mesh service UUID is 00010203-0405-0607-0809-0a0b0c0d1910.
-// Characteristic UUIDs use suffixes 1911-1914 under this base.
+// Call ordering during a session:
 //
-// All methods must be safe for concurrent use.
-// Context cancellation must be respected for all blocking operations.
+//  1. WritePair + ReadPair — login handshake (see crypto.BuildLoginRequest /
+//     crypto.ParseLoginResponse).
+//  2. SubscribeNotify — subscribe to encrypted notification packets.
+//  3. WriteCommand — send encrypted command packets (many, throughout the
+//     session).
+//  4. ReadPair — periodic keepalive (every < 30s).
+//
+// Implementations must be safe for concurrent use by a single Client. Writes
+// may interleave from different goroutines (e.g. heartbeat + control) so the
+// transport should serialise them internally.
 type Transport interface {
-	// WritePair writes data to CHAR_PAIR (UUID suffix 0x1914) using
-	// ATT Write Request (with response). Used for the login handshake.
+	// WritePair writes to CHAR_PAIR (0x1914) with an ATT Write Request
+	// (response required). Used only during login.
 	WritePair(ctx context.Context, data []byte) error
 
-	// ReadPair reads from CHAR_PAIR (UUID suffix 0x1914).
-	// Used for the login response and heartbeat keepalive.
+	// ReadPair reads from CHAR_PAIR (0x1914). Used for the login response
+	// and as the periodic keepalive.
 	ReadPair(ctx context.Context) ([]byte, error)
 
-	// WriteCommand writes an encrypted packet to CHAR_CMD (UUID suffix 0x1912).
+	// WriteCommand writes an encrypted command packet to CHAR_CMD (0x1912)
+	// as a Write Without Response. Non-blocking on the BLE stack.
 	WriteCommand(ctx context.Context, data []byte) error
 
-	// SubscribeNotify subscribes to CHAR_NOTIFY (UUID suffix 0x1911) and
-	// returns a channel delivering raw 20-byte notification packets.
-	// The implementation must write 0x01 to enable notifications.
-	// The channel is closed when the context is cancelled or the
-	// connection drops.
+	// SubscribeNotify subscribes to CHAR_NOTIFY (0x1911) and returns a
+	// channel delivering raw 20-byte packets. The channel is closed when
+	// ctx is cancelled.
 	SubscribeNotify(ctx context.Context) (<-chan []byte, error)
 
-	// GatewayMAC returns the 6-byte MAC address of the connected gateway
-	// in standard order (AA:BB:CC:DD:EE:FF → index 0=AA, 5=FF).
-	//
-	// On macOS/iOS where the OS hides real MAC addresses, this should be
-	// extracted from manufacturer data bytes 2-5 and/or the DIS Model
-	// Number characteristic (0x2a24).
+	// GatewayMAC returns the MAC address of the connected node — required
+	// to build command and notification nonces.
 	GatewayMAC() MACAddress
 }
 
-// Scanner is an optional interface for BLE scanning. It is not required
-// by [Client] but is provided as a convention for Transport implementations
-// to follow.
-type Scanner interface {
-	// Scan discovers Pixie mesh devices matching the given filter.
-	// Results are delivered on the returned channel, which is closed
-	// when the context is cancelled.
-	Scan(ctx context.Context, filter ScanFilter) (<-chan AdvertisementData, error)
-}
-
-// ScanFilter constrains which BLE advertisements are returned by [Scanner].
+// ScanFilter narrows a BLE scan for Pixie devices.
 type ScanFilter struct {
-	// MeshName filters by the advertised local name (e.g. "Smart Light").
-	// Empty string matches any name.
+	// MeshName matches against the BLE local name. Empty matches any mesh.
 	MeshName string
-
-	// NetworkID filters by the mesh network ID from manufacturer data.
-	// Zero matches any network.
+	// NetworkID matches against the 4-byte network ID in advert bytes
+	// 11-14. Zero matches any network.
 	NetworkID uint32
-
-	// GatewayOnly limits results to devices with DeviceType 0x47 (gateway).
+	// GatewayOnly, if true, keeps only advertisements whose DeviceType
+	// equals [DeviceTypeGateway].
 	GatewayOnly bool
 }

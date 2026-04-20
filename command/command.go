@@ -1,62 +1,48 @@
-// Package command provides builders for Telink BLE mesh protocol commands.
+// Package command builds the plaintext payloads of SAL Pixie / Telink BLE
+// mesh commands. Builders return [Command] values; [Command.Encode] serialises
+// them to the bytes that a client encrypts and writes to CHAR_CMD.
 //
-// Each builder function returns a [Command] struct that can be serialized
-// to its plaintext byte representation via [Command.Encode]. The resulting
-// plaintext is then encrypted by the crypto package before being written
-// to the mesh.
-//
-// Addresses are represented as uint16 to avoid import cycles with the
-// root package. Use the address constants defined in this package or
-// cast from [pigsydust.Address].
+// All wire details match pigsydust-py/docs/PROTOCOL-REFERENCE.md.
 package command
 
-import "github.com/tcslater/pigsydust/internal/byteutil"
+import (
+	"encoding/binary"
 
-const (
-	// VendorSkytone is the standard vendor ID for most commands.
-	VendorSkytone uint16 = 0x6969
-
-	// VendorSkytoneAlt is the alternate vendor ID used by status polls
-	// and group queries.
-	VendorSkytoneAlt uint16 = 0x0211
-
-	// VendorLEDQuery is the unique vendor ID used by LED indicator queries.
-	VendorLEDQuery uint16 = 0x696b
-
-	// OpTypeClient is the operation type for client-to-device commands.
-	// Wire opcode byte = (OpTypeClient << 6) | (opcode6 & 0x3f).
-	OpTypeClient byte = 3
-
-	// Well-known mesh addresses.
-	AddrBroadcast            uint16 = 0xFFFF
-	AddrBroadcastPoll        uint16 = 0x7FFF
-	AddrScheduleCoordinator  uint16 = 0x0030
+	"github.com/tcslater/pigsydust/protocol"
 )
 
-// Command represents a mesh protocol command before encryption.
+// Command is a single plaintext command payload: destination, opcode,
+// vendor, data, and the target plaintext length (which determines the
+// zero-padding applied by [Command.Encode]).
+//
+// Most opcodes use 15-byte plaintext; status queries use 10, polls 7. See
+// the per-builder documentation.
 type Command struct {
-	Destination  uint16
-	Opcode       byte
-	Vendor       uint16
-	Data         []byte
-	PlaintextLen int // total plaintext length (7, 10, or 15)
+	// Destination mesh address (individual, group, or broadcast).
+	Destination uint16
+	// Opcode — the 6-bit opcode byte (not yet shifted into the op_type
+	// field). [Command.Encode] applies the op_type shift.
+	Opcode byte
+	// Vendor ID (little-endian on the wire). Usually [protocol.VendorSkytone].
+	Vendor uint16
+	// Data is the opcode-specific payload.
+	Data []byte
+	// PlaintextLen is the total size of the encoded plaintext, including
+	// the 5-byte header (dst + opcode + vendor) and trailing zero pad.
+	PlaintextLen int
 }
 
-// Encode serializes the command to its plaintext byte representation.
-//
-// The format is:
+// Encode serialises the command to its plaintext byte representation:
 //
 //	dst(2 LE) || opcode(1) || vendor(2 LE) || data(N) || zero_pad
+//
+// The first byte of the opcode field is ((op_type << 6) | (op & 0x3F)) with
+// op_type = 3 (client-originated command).
 func (c Command) Encode() []byte {
 	buf := make([]byte, c.PlaintextLen)
-
-	byteutil.PutLE16(buf[0:2], c.Destination)
-	buf[2] = (OpTypeClient << 6) | (c.Opcode & 0x3f)
-	byteutil.PutLE16(buf[3:5], c.Vendor)
-
-	if len(c.Data) > 0 {
-		copy(buf[5:], c.Data)
-	}
-
+	binary.LittleEndian.PutUint16(buf[0:2], c.Destination)
+	buf[2] = (protocol.OpTypeClient << 6) | (c.Opcode & 0x3F)
+	binary.LittleEndian.PutUint16(buf[3:5], c.Vendor)
+	copy(buf[5:], c.Data)
 	return buf
 }

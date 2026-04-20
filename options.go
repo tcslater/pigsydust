@@ -1,50 +1,32 @@
 package pigsydust
 
 import (
-	"io"
 	"log/slog"
 	"time"
 )
 
-type clientConfig struct {
+// ClientOption configures a [Client]. Pass options to [NewClient].
+type ClientOption func(*clientOptions)
+
+type clientOptions struct {
 	heartbeatInterval time.Duration
-	commandTimeout    time.Duration
 	logger            *slog.Logger
-	randSource        io.Reader
 }
 
-func defaultConfig() clientConfig {
-	return clientConfig{
-		heartbeatInterval: 30 * time.Second,
-		commandTimeout:    5 * time.Second,
-		logger:            slog.New(slog.NewTextHandler(io.Discard, nil)),
-	}
+var defaultOptions = clientOptions{
+	// Telink keepalive timer is 30s — stay under it comfortably.
+	heartbeatInterval: 25 * time.Second,
+	logger:            slog.Default(),
 }
 
-// Option configures a [Client].
-type Option func(*clientConfig)
-
-// WithHeartbeatInterval sets the interval for keepalive reads on CHAR_PAIR.
-// Default is 30 seconds.
-func WithHeartbeatInterval(d time.Duration) Option {
-	return func(c *clientConfig) { c.heartbeatInterval = d }
+// WithHeartbeatInterval overrides the keepalive read interval. Values ≥ 30s
+// risk the firmware tearing the connection down.
+func WithHeartbeatInterval(d time.Duration) ClientOption {
+	return func(o *clientOptions) { o.heartbeatInterval = d }
 }
 
-// WithCommandTimeout sets the timeout for request-response operations
-// (status polls, group queries, LED queries, etc.). Default is 5 seconds.
-func WithCommandTimeout(d time.Duration) Option {
-	return func(c *clientConfig) { c.commandTimeout = d }
-}
-
-// WithLogger sets the structured logger for debug and error messages.
-// Default discards all log output.
-func WithLogger(l *slog.Logger) Option {
-	return func(c *clientConfig) { c.logger = l }
-}
-
-// WithRandSource overrides the random byte source used for login nonce
-// generation. Default is crypto/rand.Reader. This option is primarily
-// useful for deterministic testing.
-func WithRandSource(r io.Reader) Option {
-	return func(c *clientConfig) { c.randSource = r }
+// WithLogger sets the slog logger used for session events (heartbeat, notify
+// demux, decrypt failures). Defaults to [slog.Default].
+func WithLogger(l *slog.Logger) ClientOption {
+	return func(o *clientOptions) { o.logger = l }
 }

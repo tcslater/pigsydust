@@ -1,38 +1,25 @@
 package pigsydust
 
-import (
-	"errors"
-	"fmt"
-)
+import "errors"
 
+// Errors returned by package pigsydust.
 var (
-	// ErrNotConnected indicates the client has not completed login.
-	ErrNotConnected = errors.New("pigsydust: not connected")
+	// ErrNotLoggedIn is returned by Client operations invoked before Login.
+	ErrNotLoggedIn = errors.New("pigsydust: not logged in")
 
-	// ErrClosed indicates the client has been closed.
-	ErrClosed = errors.New("pigsydust: client closed")
+	// ErrLoginFailed is returned when the pairing handshake fails.
+	ErrLoginFailed = errors.New("pigsydust: login failed")
 
-	// ErrTimeout indicates an operation did not receive a response in time.
-	ErrTimeout = errors.New("pigsydust: operation timed out")
+	// ErrTagMismatch is returned when a notification's CBC-MAC tag fails
+	// verification. This is common for stale packets from a prior session
+	// and usually safe to ignore at the call site.
+	ErrTagMismatch = errors.New("pigsydust: CBC-MAC tag mismatch")
 
-	// ErrInvalidPacket indicates a malformed packet was received.
-	ErrInvalidPacket = errors.New("pigsydust: invalid packet")
+	// ErrShortPacket is returned when a packet is shorter than the protocol
+	// requires.
+	ErrShortPacket = errors.New("pigsydust: packet too short")
 
-	// ErrInvalidChecksum indicates an alarm record XOR checksum mismatch.
-	ErrInvalidChecksum = errors.New("pigsydust: invalid XOR checksum")
+	// ErrUnexpectedOpcode is returned when a parser is handed a notification
+	// with the wrong opcode.
+	ErrUnexpectedOpcode = errors.New("pigsydust: unexpected opcode")
 )
-
-// OpError wraps an error with the operation and target address that caused it.
-type OpError struct {
-	Op   string
-	Addr Address
-	Err  error
-}
-
-func (e *OpError) Error() string {
-	return fmt.Sprintf("pigsydust: %s %s: %v", e.Op, e.Addr, e.Err)
-}
-
-func (e *OpError) Unwrap() error {
-	return e.Err
-}

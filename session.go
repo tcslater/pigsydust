@@ -1,101 +1,39 @@
 package pigsydust
 
 import (
-	"context"
+	"crypto/rand"
+	"fmt"
 	"sync"
-	"sync/atomic"
 )
 
-// session holds per-connection state derived during login.
+// session holds the per-connection cryptographic state: the derived session
+// key, the 2-byte salt (high bytes of every sno), and the monotonically
+// incrementing sno counter.
 type session struct {
-	sessionKey  [16]byte
-	gwMAC       MACAddress
-	sessionSalt [2]byte
-	seqNum      atomic.Uint32
-
-	// Notification routing.
-	mu      sync.Mutex
-	waiters map[waiterKey]chan Notification
+	mu         sync.Mutex
+	key        [16]byte
+	salt       [2]byte
+	seq        uint8
+	gwMAC      MACAddress
+	loggedIn   bool
 }
 
-type waiterKey struct {
-	opcode byte
-	source Address
-}
-
-// nextSNO returns the 3-byte sequence number for the next command
-// and increments the counter.
+// nextSNO returns the next 3-byte serial number to use for a command. The
+// low byte is the monotonic counter; the two high bytes are the random salt
+// chosen at login. Counter wraps naturally at 256.
 func (s *session) nextSNO() [3]byte {
-	seq := s.seqNum.Add(1) - 1
-	return [3]byte{
-		byte(seq),
-		s.sessionSalt[0],
-		s.sessionSalt[1],
-	}
-}
-
-// registerWaiter creates a channel that will receive the next notification
-// matching the given opcode from any source. Use source=0 to match any source.
-func (s *session) registerWaiter(opcode byte, source Address) chan Notification {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-
-	ch := make(chan Notification, 1)
-	if s.waiters == nil {
-		s.waiters = make(map[waiterKey]chan Notification)
-	}
-	s.waiters[waiterKey{opcode: opcode, source: source}] = ch
-	return ch
+	sno := [3]byte{s.seq, s.salt[0], s.salt[1]}
+	s.seq++
+	return sno
 }
 
-// unregisterWaiter removes a previously registered waiter.
-func (s *session) unregisterWaiter(opcode byte, source Address) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	delete(s.waiters, waiterKey{opcode: opcode, source: source})
-}
-
-// routeNotification checks if any waiter is expecting this notification.
-// Returns true if the notification was consumed by a waiter.
-func (s *session) routeNotification(n Notification) bool {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	// Try exact match first (opcode + source).
-	key := waiterKey{opcode: n.Opcode, source: n.Source}
-	if ch, ok := s.waiters[key]; ok {
-		select {
-		case ch <- n:
-		default:
-		}
-		delete(s.waiters, key)
-		return true
+// randomSalt generates a 2-byte random salt for the session.
+func randomSalt() ([2]byte, error) {
+	var out [2]byte
+	if _, err := rand.Read(out[:]); err != nil {
+		return out, fmt.Errorf("pigsydust: generating salt: %w", err)
 	}
-
-	// Try wildcard source match (opcode + source=0).
-	key = waiterKey{opcode: n.Opcode, source: 0}
-	if ch, ok := s.waiters[key]; ok {
-		select {
-		case ch <- n:
-		default:
-		}
-		delete(s.waiters, key)
-		return true
-	}
-
-	return false
-}
-
-// waitForNotification registers a waiter and blocks until a matching
-// notification arrives or the context is cancelled.
-func (s *session) waitForNotification(ctx context.Context, opcode byte, source Address) (Notification, error) {
-	ch := s.registerWaiter(opcode, source)
-	defer s.unregisterWaiter(opcode, source)
-
-	select {
-	case n := <-ch:
-		return n, nil
-	case <-ctx.Done():
-		return Notification{}, ctx.Err()
-	}
+	return out, nil
 }

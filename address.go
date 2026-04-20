@@ -1,59 +1,44 @@
 package pigsydust
 
-import "fmt"
-
-// Address is a 16-bit mesh address identifying a device, group, or broadcast target.
+// Address is a 16-bit mesh address.
+//
+// The address space is partitioned:
+//
+//   - 0x0001 – 0x7FFE: individual device addresses
+//   - 0x7FFF:          broadcast-poll (used by status polling)
+//   - 0x8000 | id:     group address (e.g. 0x8001 = group 1)
+//   - 0xFFFF:          full broadcast (on/off, time sync)
+//   - 0x0030:          schedule coordinator (receives alarm ops)
 type Address uint16
 
+// Well-known mesh addresses.
 const (
-	// AddressBroadcast is the full broadcast address used by on/off and time sync.
-	AddressBroadcast Address = 0xFFFF
-
-	// AddressBroadcastPoll is the broadcast address used by status polling.
-	AddressBroadcastPoll Address = 0x7FFF
-
-	// AddressScheduleCoordinator is the address that receives all alarm operations.
-	AddressScheduleCoordinator Address = 0x0030
+	AddrBroadcast       Address = 0xFFFF
+	AddrBroadcastPoll   Address = 0x7FFF
+	AddrScheduleCoord   Address = 0x0030
+	groupAddrBit        uint16  = 0x8000
 )
 
-// GroupAddress returns the mesh address for the given group ID.
-// Group addresses are encoded as 0x8000 | id.
-func GroupAddress(id uint8) Address {
-	return Address(0x8000 | uint16(id))
-}
-
-// IsGroup reports whether a is a group address (bit 15 set, not broadcast).
+// IsGroup reports whether a is a group address (high bit set).
 func (a Address) IsGroup() bool {
-	return a&0x8000 != 0 && a != AddressBroadcast
+	return uint16(a)&groupAddrBit != 0 && a != AddrBroadcast
 }
 
-// IsIndividual reports whether a is an individual device address (0x0001-0x7FFF).
+// IsIndividual reports whether a is a non-broadcast individual address.
 func (a Address) IsIndividual() bool {
-	return a > 0 && a <= 0x7FFF
+	return a != 0 && a < 0x7FFF
 }
 
-// GroupID returns the group ID if a is a group address.
-// The second return value is false if a is not a group address.
-func (a Address) GroupID() (uint8, bool) {
+// GroupID returns the group ID (low byte) if a is a group address. Returns 0
+// for non-group addresses.
+func (a Address) GroupID() uint8 {
 	if !a.IsGroup() {
-		return 0, false
+		return 0
 	}
-	return uint8(a & 0xFF), true
+	return uint8(a & 0x00FF)
 }
 
-func (a Address) String() string {
-	if a == AddressBroadcast {
-		return "broadcast"
-	}
-	if a == AddressBroadcastPoll {
-		return "broadcast-poll"
-	}
-	if a == AddressScheduleCoordinator {
-		return "schedule-coordinator"
-	}
-	if a.IsGroup() {
-		id, _ := a.GroupID()
-		return fmt.Sprintf("group-%d", id)
-	}
-	return fmt.Sprintf("device-%d", a)
+// GroupAddress returns the 16-bit address for group id.
+func GroupAddress(id uint8) Address {
+	return Address(groupAddrBit | uint16(id))
 }
