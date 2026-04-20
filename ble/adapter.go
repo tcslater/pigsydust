@@ -128,11 +128,6 @@ func (a *Adapter) Connect(ctx context.Context, adv pigsydust.AdvertisementData, 
 		}
 	}
 
-	// Try to extract full MAC from DIS Model Number if partial.
-	if err := conn.enrichMACFromDIS(device); err != nil {
-		// Non-fatal — we may already have enough from manufacturer data.
-	}
-
 	return conn, nil
 }
 

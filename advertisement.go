@@ -13,10 +13,9 @@ type Advertisement struct {
 	// identifier). Populated by the scanner — ParseAdvertisement doesn't
 	// know it because it only sees manufacturer data.
 	MeshName string
-	// MAC holds bytes 2..5 extracted from the advertisement into index
-	// 2..5 of the MAC array. Bytes 0 and 1 (typically 0x00 0x21) must be
-	// filled in by the caller from another source — on macOS/iOS from the
-	// DIS Model Number characteristic, on Linux from the scan address.
+	// MAC is the full 6-byte hardware MAC of the advertising node. The
+	// lower four bytes come from the manufacturer data; the upper two are
+	// the fixed Telink/Skytone OUI 00:21.
 	MAC           MACAddress
 	DeviceType    byte // advert byte 6 — wire-halved device class type
 	DeviceSubtype byte // advert byte 7 — wire-halved device class subtype
@@ -69,6 +68,7 @@ func ParseAdvertisement(data []byte) *Advertisement {
 		return nil
 	}
 	var mac MACAddress
+	mac[0], mac[1] = 0x00, 0x21 // fixed Telink/Skytone OUI
 	mac[5] = data[2]
 	mac[4] = data[3]
 	mac[3] = data[4]
